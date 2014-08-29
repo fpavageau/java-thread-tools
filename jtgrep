@@ -20,13 +20,13 @@ if [ $# = 0 ]; then
   exit 1
 fi
 
-INVERT=0
 IGNORECASE=0
+INVERT=0
 
-while getopts vi PARAM; do
+while getopts iv PARAM; do
   case $PARAM in
-    v) INVERT=1;;
     i) IGNORECASE=1;;
+    v) INVERT=1;;
   esac
 done
 shift $(($OPTIND - 1))
