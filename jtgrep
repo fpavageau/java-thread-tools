@@ -16,6 +16,8 @@
 if [ $# = 0 ]; then
   echo "Usage: jtgrep [-i] [-v] PATTERN [FILE...]"
   echo "    -c Replace normal output by a count of matching threads for each input file"
+  echo "    -h Suppress the prefixing of file names on output when counting"
+  echo "    -H Print the file name for each match when counting"
   echo "    -i Ignore case distinctions in the pattern"
   echo "    -v Invert the sense of matching, to select non-matching threads"
   exit 1
@@ -24,10 +26,14 @@ fi
 COUNT=0
 IGNORECASE=0
 INVERT=0
+# Possible values: -1 = default behavior, 0 = never show the file name, 1 = always show the file name
+SHOWFILE=-1
 
-while getopts civ PARAM; do
+while getopts chHiv PARAM; do
   case $PARAM in
     c) COUNT=1;;
+    h) SHOWFILE=0;;
+    H) SHOWFILE=1;;
     i) IGNORECASE=1;;
     v) INVERT=1;;
   esac
@@ -37,7 +43,7 @@ shift $(($OPTIND - 1))
 PATTERN=$1
 shift
 
-awk -v pattern=$PATTERN -v doCount=$COUNT -v invert=$INVERT -v IGNORECASE=$IGNORECASE '
+awk -v pattern=$PATTERN -v doCount=$COUNT -v invert=$INVERT -v showFile=$SHOWFILE -v IGNORECASE=$IGNORECASE '
 BEGIN {
   m = -1
   # Convert to a proper integer: the string "0" does not have the same meaning
@@ -106,7 +112,7 @@ function condPrint(line) {
 function printFileCount(file) {
   if (doCount) {
     realCount = invert ? threadCount - count : count
-    if (file) {
+    if (file && showFile != 0) {
       print file ":" realCount
     } else {
       print realCount
@@ -117,7 +123,7 @@ function printFileCount(file) {
 function printFinalCount() {
   # Just like grep: if you count on a single file, you get the count and if
   # you count on multiple files, you get each file name and the count.
-  if (fileCount > 1) {
+  if (fileCount > 1 || showFile > 0) {
     printFileCount(currentFile)
   } else {
     printFileCount()

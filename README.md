@@ -143,6 +143,18 @@ Finally, it can also count threads instead of printing them, in which case the n
     $ cat thread-dump-7660-20140829-1040*.log | jtgrep -c RUN
     92
 
+### Usage
+
+Running the command without any parameter will show its options:
+
+    $ jtgrep 
+    Usage: jtgrep [-i] [-v] PATTERN [FILE...]
+        -c Replace normal output by a count of matching threads for each input file
+        -h Suppress the prefixing of file names on output when counting
+        -H Print the file name for each match when counting
+        -i Ignore case distinctions in the pattern
+        -v Invert the sense of matching, to select non-matching threads
+
 ### Dependencies
 
 It works best with GNU awk, as `mawk` doesn't have an option to ignore the case.
