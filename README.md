@@ -147,6 +147,26 @@ Finally, it can also count threads instead of printing them, in which case the n
 
 It works best with GNU awk, as `mawk` doesn't have an option to ignore the case.
 
+## jtid
+
+It's a shell script that prints thread names with their decimal ID, usable in the OS context. This information can for
+example be used to read from `/proc/[PID]/task/[TID]/stat`.
+
+### Examples
+
+    $ jtgrep GC thread-dump-7660-20140829-104003.log | jtid
+    "Surrogate Locker Thread (Concurrent GC)" 7674
+    "Gang worker#0 (Parallel GC Threads)" 7662
+    "Gang worker#1 (Parallel GC Threads)" 7663
+    "Gang worker#2 (Parallel GC Threads)" 7664
+    "Gang worker#3 (Parallel GC Threads)" 7665
+    "Gang worker#4 (Parallel GC Threads)" 7666
+    "Gang worker#5 (Parallel GC Threads)" 7667
+    "Concurrent Mark-Sweep GC Thread" 7670
+
+The PID of the JVM being 7660, we could read `/proc/7660/task/7670/stat` to get the ID of the last processor used by
+the CMS thread (as the 39th field).
+
 ## Feedback welcome!
 
 Add a comment, create an issue, ping me on [Twitter](https://twitter.com/fpavageau)...
