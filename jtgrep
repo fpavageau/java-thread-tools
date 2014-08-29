@@ -61,7 +61,7 @@ m < 0 && /^$/ { print }
 
 # Accumulate the lines for the current thread
 m >= 0 {
-  if (length(thread) > 0) { thread = thread "\n" $0 }
+  if (thread) { thread = thread "\n" $0 }
   else { thread = $0 }
 }
 
