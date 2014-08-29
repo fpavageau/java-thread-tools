@@ -129,6 +129,20 @@ It can also ignore the case:
     "Concurrent Mark-Sweep GC Thread" prio=10 tid=0x00000000175c3800 nid=0x4c28 runnable 
     JNI global references: 878
 
+Finally, it can also count threads instead of printing them, in which case the non-thread output is also suppressed:
+
+    $ jtgrep -c RUN thread-dump-7660-20140829-104003.log
+    11
+    $ jtgrep -c RUN thread-dump-7660-20140829-1040*.log
+    thread-dump-7660-20140829-104003.log:11
+    thread-dump-7660-20140829-104013.log:13
+    thread-dump-7660-20140829-104024.log:18
+    thread-dump-7660-20140829-104034.log:18
+    thread-dump-7660-20140829-104045.log:18
+    thread-dump-7660-20140829-104055.log:14
+    $ cat thread-dump-7660-20140829-1040*.log | jtgrep -c RUN
+    92
+
 ### Dependencies
 
 It works best with GNU awk, as `mawk` doesn't have an option to ignore the case.

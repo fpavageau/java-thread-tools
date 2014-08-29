@@ -15,16 +15,19 @@
 
 if [ $# = 0 ]; then
   echo "Usage: jtgrep [-i] [-v] PATTERN [FILE...]"
+  echo "    -c Replace normal output by a count of matching threads for each input file"
   echo "    -i Ignore case distinctions in the pattern"
   echo "    -v Invert the sense of matching, to select non-matching threads"
   exit 1
 fi
 
+COUNT=0
 IGNORECASE=0
 INVERT=0
 
-while getopts iv PARAM; do
+while getopts civ PARAM; do
   case $PARAM in
+    c) COUNT=1;;
     i) IGNORECASE=1;;
     v) INVERT=1;;
   esac
@@ -34,7 +37,7 @@ shift $(($OPTIND - 1))
 PATTERN=$1
 shift
 
-awk -v pattern=$PATTERN -v invert=$INVERT -v IGNORECASE=$IGNORECASE '
+awk -v pattern=$PATTERN -v doCount=$COUNT -v invert=$INVERT -v IGNORECASE=$IGNORECASE '
 BEGIN {
   m = -1
   # Convert to a proper integer: the string "0" does not have the same meaning
@@ -42,21 +45,33 @@ BEGIN {
   IGNORECASE = int(IGNORECASE)
 }
 
+# Track the changes of current file
+currentFile != FILENAME {
+  if (currentFile) {
+    printFileCount(currentFile)
+  }
+  fileCount++
+  currentFile = FILENAME
+  count = 0
+  threadCount = 0
+}
+
 # Print text blocks outside of a thread
 /^[a-zA-Z0-9]/ {
   printThread()
-  print
+  condPrint($0)
   m = -1 # Set the "outside of thread" context
 }
 
 # Print empty lines outside of a thread
-m < 0 && /^$/ { print }
+m < 0 && /^$/ { condPrint($0) }
 
 # Start a new thread
 /^"/ {
   printThread()
   thread = ""
   m = 0
+  threadCount++
 }
 
 # Accumulate the lines for the current thread
@@ -66,15 +81,46 @@ m >= 0 {
 }
 
 # Try to match the current thread with the pattern
-m == 0 && $0 ~ pattern { m = 1 }
+m == 0 && $0 ~ pattern {
+  m = 1
+  count++
+}
 
 END {
   printThread()
+  printFinalCount()
 }
 
 function printThread() {
   if ((!invert && m > 0) || (invert && m == 0)) {
-    print thread
+    condPrint(thread)
+  }
+}
+
+function condPrint(line) {
+  if (!doCount) {
+    print line
+  }
+}
+
+function printFileCount(file) {
+  if (doCount) {
+    realCount = invert ? threadCount - count : count
+    if (file) {
+      print file ":" realCount
+    } else {
+      print realCount
+    }
+  }
+}
+
+function printFinalCount() {
+  # Just like grep: if you count on a single file, you get the count and if
+  # you count on multiple files, you get each file name and the count.
+  if (fileCount > 1) {
+    printFileCount(currentFile)
+  } else {
+    printFileCount()
   }
 }
 ' $@
