@@ -43,7 +43,7 @@ shift $(($OPTIND - 1))
 PATTERN=$1
 shift
 
-awk -v pattern=$PATTERN -v doCount=$COUNT -v invert=$INVERT -v showFile=$SHOWFILE -v IGNORECASE=$IGNORECASE '
+awk -v pattern="$PATTERN" -v doCount=$COUNT -v invert=$INVERT -v showFile=$SHOWFILE -v IGNORECASE=$IGNORECASE '
 BEGIN {
   m = -1
   # Convert to a proper integer: the string "0" does not have the same meaning
