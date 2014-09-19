@@ -45,6 +45,10 @@ shift
 
 awk -v pattern="$PATTERN" -v doCount=$COUNT -v invert=$INVERT -v showFile=$SHOWFILE -v IGNORECASE=$IGNORECASE '
 BEGIN {
+  # Possible values:
+  # - -1: outside of a thread
+  # - 0: thread has not not matched yet
+  # - 1: thread matched
   m = -1
   # Convert to a proper integer: the string "0" does not have the same meaning
   # as the integer 0 (i.e. it is true, not false).
