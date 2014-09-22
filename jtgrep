@@ -19,6 +19,7 @@ if [ $# = 0 ]; then
   echo "    -h Suppress the prefixing of file names on output when counting"
   echo "    -H Print the file name for each match when counting"
   echo "    -i Ignore case distinctions in the pattern"
+  echo "    -o Fold the output by only showing the first matching part of the stack"
   echo "    -v Invert the sense of matching, to select non-matching threads"
   exit 1
 fi
@@ -26,24 +27,32 @@ fi
 COUNT=0
 IGNORECASE=0
 INVERT=0
+MATCH_ONLY=0
 # Possible values: -1 = default behavior, 0 = never show the file name, 1 = always show the file name
 SHOWFILE=-1
 
-while getopts chHiv PARAM; do
+while getopts chHiov PARAM; do
   case $PARAM in
     c) COUNT=1;;
     h) SHOWFILE=0;;
     H) SHOWFILE=1;;
     i) IGNORECASE=1;;
+    o) MATCH_ONLY=1;;
     v) INVERT=1;;
   esac
 done
 shift $(($OPTIND - 1))
 
+if [ $MATCH_ONLY = 1 ] && [ $INVERT = 1 ]; then
+  echo "Incompatible options: -o -v" 1>&2
+  exit 1
+fi
+
 PATTERN=$1
 shift
 
-awk -v pattern="$PATTERN" -v doCount=$COUNT -v invert=$INVERT -v showFile=$SHOWFILE -v IGNORECASE=$IGNORECASE '
+awk -v pattern="$PATTERN" -v doCount=$COUNT -v invert=$INVERT \
+    -v matchOnly=$MATCH_ONLY -v showFile=$SHOWFILE -v IGNORECASE=$IGNORECASE '
 BEGIN {
   # Possible values:
   # - -1: outside of a thread
@@ -69,25 +78,34 @@ currentFile != FILENAME {
 # Print text blocks outside of a thread
 /^[a-zA-Z0-9]/ {
   printThread()
-  condPrint($0)
+  if (!matchOnly) { condPrint($0) }
   m = -1 # Set the "outside of thread" context
 }
 
 # Print empty lines outside of a thread
-m < 0 && /^$/ { condPrint($0) }
+m < 0 && !matchOnly && /^$/ { condPrint($0) }
 
 # Start a new thread
 /^"/ {
   printThread()
   thread = ""
   m = 0
+  stackMatch = 0
   threadCount++
 }
 
 # Accumulate the lines for the current thread
 m >= 0 {
-  if (thread) { thread = thread "\n" $0 }
-  else { thread = $0 }
+  if (thread) {
+    if (!matchOnly ||
+        (!stackMatch &&
+         $1 == "at" &&
+         ((invert && $0 !~ pattern) ||
+          (!invert && $0 ~ pattern)))) {
+      stackMatch = 1
+      thread = thread "\n" $0
+    }
+  } else { thread = $0 }
 }
 
 # Try to match the current thread with the pattern
@@ -102,7 +120,7 @@ END {
 }
 
 function printThread() {
-  if ((!invert && m > 0) || (invert && m == 0)) {
+  if ((!invert && m > 0 && (!matchOnly || stackMatch)) || (invert && m == 0)) {
     condPrint(thread)
   }
 }
